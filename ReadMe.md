@@ -1,2 +1,2 @@
-SnippetCreate.py: ±£´æsnippetµÄÅäÖÃ
-SnippetPattern.py£ºÔËĞĞºóÉú³Ésnippet£¬¿É¹©SSMSµ¼Èë
+SnippetCreate.py: ä¿å­˜snippetçš„é…ç½®
+SnippetPattern.pyï¼šè¿è¡Œåç”Ÿæˆsnippetï¼Œå¯ä¾›SSMSå¯¼å…¥
