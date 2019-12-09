@@ -1,0 +1,2 @@
+SnippetCreate.py: 保存snippet的配置
+SnippetPattern.py：运行后生成snippet，可供SSMS导入
