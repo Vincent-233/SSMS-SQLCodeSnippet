@@ -150,40 +150,43 @@ ORDER BY
 
 running_query = """-- Running Query
 SELECT req.session_id
-	,s.login_time
-	,req.start_time
-	,req.total_elapsed_time
-	,req.total_elapsed_time / 1000.0 / 60.0 AS total_eplapsed_minutes
-	,req.STATUS
-	,req.command
-	,req.database_id
-       ,req.last_wait_type
-       ,req.blocking_session_id
-	,db.name AS [database]
-	,object_name(st.objectid, st.[dbid]) 'ObjectName'
-	,s.login_name
-	,s.host_name
-	,s.program_name
-	,s.client_version
-	,s.nt_user_name
-	,req.open_transaction_count
-	,req.estimated_completion_time
-	,st.TEXT
-	,SUBSTRING(ST.TEXT, (req.statement_start_offset / 2) + 1, (
-			(
-				CASE statement_end_offset
-					WHEN - 1
-						THEN DATALENGTH(ST.TEXT)
-					ELSE req.statement_end_offset
-					END - req.statement_start_offset
-				) / 2
-			) + 1) AS statement_text
+    ,s.login_time
+    ,req.start_time
+    ,req.total_elapsed_time
+    ,req.total_elapsed_time / 1000.0 / 60.0 AS total_eplapsed_minutes
+    ,req.STATUS
+    ,req.command
+    ,req.database_id
+    ,req.last_wait_type
+    ,req.wait_resource
+    ,req.blocking_session_id AS blocking_by_session_id
+    ,db.name AS [database]
+    ,object_name(st.objectid, st.[dbid]) 'ObjectName'
+    ,s.login_name
+    ,s.host_name
+    ,s.program_name
+    ,s.client_version
+    ,s.nt_user_name
+    ,req.open_transaction_count
+    ,req.estimated_completion_time
+    ,DATALENGTH(ST.TEXT) AS statement_length
+    ,req.statement_start_offset
+    ,req.statement_end_offset
+    ,st.TEXT
+    ,SUBSTRING(ST.TEXT, (req.statement_start_offset / 2) + 1, (
+            (
+                CASE statement_end_offset
+                    WHEN - 1
+                        THEN DATALENGTH(ST.TEXT)
+                    ELSE req.statement_end_offset
+                    END - req.statement_start_offset
+                ) / 2
+            ) + 1) AS statement_text
 FROM sys.dm_exec_requests req
 CROSS APPLY sys.dm_exec_sql_text(req.sql_handle) AS st
 LEFT JOIN sys.databases db ON req.database_id = db.database_id
 LEFT JOIN sys.dm_exec_sessions s ON req.session_id = s.session_id;
 """
-
 
 
 # snippets 的结构配置
