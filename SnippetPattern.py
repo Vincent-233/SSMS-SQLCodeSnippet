@@ -38,12 +38,14 @@ WHERE CHARINDEX('',a.definition) > 0
 
 sfv = """-- search views
 SELECT * FROM sys.views
-WHERE name LIKE '%%';
+WHERE name LIKE '%%'
+order by modify_date DESC;
 """
 
 sft = """-- search tables
 SELECT * FROM sys.tables
-WHERE name LIKE '%%';
+WHERE name LIKE '%%'
+order by modify_date DESC;
 """
 
 sff = """-- search functions
@@ -53,7 +55,8 @@ AND name LIKE '%%';
 
 sfp = """-- search procedures
 SELECT * FROM sys.procedures
-WHERE name LIKE '%%';
+WHERE name LIKE '%%'
+order by modify_date DESC;
 """
 
 sfc = """-- search column names
@@ -123,6 +126,65 @@ WHERE c .file_number = 1 -- mdf file
 ORDER BY b. backup_finish_date DESC;
 """
 
+long_query = """-- Execute the query inside target database
+SELECT TOP 10
+      qs.total_elapsed_time / qs.execution_count / 1000000.0 AS average_seconds,
+      qs.total_elapsed_time / 1000000.0 AS total_seconds,
+      qs.execution_count,
+      SUBSTRING (qt.text,qs.statement_start_offset/2, 
+      (CASE WHEN qs.statement_end_offset = -1 
+      THEN LEN(CONVERT(NVARCHAR(MAX), qt.text)) * 2 
+      ELSE qs.statement_end_offset END - qs.statement_start_offset)/2) AS individual_query,
+      o.name AS object_name,
+      DB_NAME(qt.dbid) AS database_name
+FROM
+      sys.dm_exec_query_stats qs
+      CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) as qt
+      LEFT OUTER JOIN sys.objects o ON qt.objectid = o.object_id
+WHERE 
+      qt.dbid = DB_ID()
+ORDER BY 
+      average_seconds DESC;
+"""
+
+
+running_query = """-- Running Query
+SELECT req.session_id
+	,s.login_time
+	,req.start_time
+	,req.total_elapsed_time
+	,req.total_elapsed_time / 1000.0 / 60.0 AS total_eplapsed_minutes
+	,req.STATUS
+	,req.command
+	,req.database_id
+       ,req.last_wait_type
+       ,req.blocking_session_id
+	,db.name AS [database]
+	,object_name(st.objectid, st.[dbid]) 'ObjectName'
+	,s.login_name
+	,s.host_name
+	,s.program_name
+	,s.client_version
+	,s.nt_user_name
+	,req.open_transaction_count
+	,req.estimated_completion_time
+	,st.TEXT
+	,SUBSTRING(ST.TEXT, (req.statement_start_offset / 2) + 1, (
+			(
+				CASE statement_end_offset
+					WHEN - 1
+						THEN DATALENGTH(ST.TEXT)
+					ELSE req.statement_end_offset
+					END - req.statement_start_offset
+				) / 2
+			) + 1) AS statement_text
+FROM sys.dm_exec_requests req
+CROSS APPLY sys.dm_exec_sql_text(req.sql_handle) AS st
+LEFT JOIN sys.databases db ON req.database_id = db.database_id
+LEFT JOIN sys.dm_exec_sessions s ON req.session_id = s.session_id;
+"""
+
+
 
 # snippets 的结构配置
 snippets = [
@@ -134,7 +196,9 @@ snippets = [
     {'title':'sfc' ,'description':'search column names', 'sql':sfc},
     {'title':'table sizes' ,'description':'show table rows and sizes', 'sql':table_size},
     {'title':'backup history' ,'description':'show backup history', 'sql':backup_history},
-    {'title':'restore history' ,'description':'show restore history', 'sql':restore_history}
+    {'title':'restore history' ,'description':'show restore history', 'sql':restore_history},
+    {'title':'long query' ,'description':'show long run query', 'sql':long_query},
+    {'title':'running query' ,'description':'show running query', 'sql':running_query}
 ]
 
 
