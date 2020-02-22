@@ -64,24 +64,25 @@ SELECT a.name AS column_name,c.name AS data_type,b.name AS [object_name],b.[type
 FROM sys.columns a
 INNER JOIN sys.objects b ON a.object_id = b.object_id
 INNER JOIN sys.types c ON a.system_type_id = c.user_type_id
-WHERE b.Type IN ('U','V') 
+WHERE b.Type IN ('U','V')
   AND a.name LIKE '%%';
 """
 
 table_size = """SELECT
-s.Name AS SchemaName,
-t.Name AS TableName,
-p.rows AS RowCounts,
-CAST(ROUND((SUM(a.used_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Used_MB,
-CAST(ROUND((SUM(a.total_pages) - SUM(a.used_pages)) / 128.00, 2) AS NUMERIC(36, 2)) AS Unused_MB,
-CAST(ROUND((SUM(a.total_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Total_MB
-FROM sys.tables t
-INNER JOIN sys.indexes i ON t.OBJECT_ID = i.object_id
-INNER JOIN sys.partitions p ON i.object_id = p.OBJECT_ID AND i.index_id = p.index_id
-INNER JOIN sys.allocation_units a ON p.partition_id = a.container_id
-INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
-GROUP BY t.Name, s.Name, p.Rows
-ORDER BY Total_MB desc;
+    s.Name AS SchemaName,
+    t.Name AS TableName,
+    p.partition_number,
+    p.rows AS RowCounts,
+    CAST(ROUND((SUM(a.used_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Used_MB,
+    CAST(ROUND((SUM(a.total_pages) - SUM(a.used_pages)) / 128.00, 2) AS NUMERIC(36, 2)) AS Unused_MB,
+    CAST(ROUND((SUM(a.total_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Total_MB
+    FROM sys.tables t
+    INNER JOIN sys.indexes i ON t.OBJECT_ID = i.object_id
+    INNER JOIN sys.partitions p ON i.object_id = p.OBJECT_ID AND i.index_id = p.index_id
+    INNER JOIN sys.allocation_units a ON p.partition_id = a.container_id
+    INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+GROUP BY t.Name, s.Name, p.Rows, p.partition_number
+ORDER BY Total_MB DESC;
 """
 
 backup_history = """-- 查询所有数据库备份历史（在此基础上可以做其他改进，如查最后一次备份日期等）
@@ -189,6 +190,48 @@ LEFT JOIN sys.dm_exec_sessions s ON req.session_id = s.session_id;
 """
 
 
+insert_select = """--- Insert Select Query
+DECLARE @Table VARCHAR(500) = '<TableName>';
+DECLARE @Cols VARCHAR(2000),@Inser_Select VARCHAR(4000);
+SET @Cols = ',' + (
+    SELECT  name + CHAR(10) + ','
+    FROM sys.columns
+    WHERE OBJECT_ID = OBJECT_ID(@Table)
+    FOR XML PATH('')
+)
+SET @Cols =  REPLACE(LEFT(@Cols,LEN(@Cols )-1),',','    ,')
+SET @Cols = '     ' + RIGHT(@Cols,LEN(@Cols)-5)
+SET @Inser_Select = 'INSERT INTO '+@Table+CHAR(10)+'('+CHAR(10)+@Cols+')'+CHAR(10)+'SELECT'+CHAR(10)+@Cols+'FROM '+ @Table + ';'
+PRINT @Inser_Select;
+"""
+
+
+partition_info = """"-- 分区表数据分布情况
+SELECT  OBJECT_NAME(i.object_id) AS ObjectName
+       ,c.name AS PartitioningColumn
+       ,CONVERT(VARCHAR(50), ps.name) AS partition_scheme
+       ,p.partition_number
+       ,CONVERT(VARCHAR(10), ds2.name) AS filegroup
+       ,CONVERT(VARCHAR(19), ISNULL(v.value, ''), 120) AS range_boundary
+       ,p.rows
+       --,df.physical_name AS DatabaseFileName
+FROM    sys.indexes i
+        JOIN sys.partition_schemes ps ON i.data_space_id = ps.data_space_id
+        JOIN sys.destination_data_spaces dds ON ps.data_space_id = dds.partition_scheme_id
+        JOIN sys.data_spaces ds2 ON dds.data_space_id = ds2.data_space_id
+        JOIN sys.partitions p ON dds.destination_id = p.partition_number AND p.object_id = i.object_id AND p.index_id = i.index_id
+        JOIN sys.partition_functions pf ON ps.function_id = pf.function_id
+        --JOIN sys.database_files df ON df.data_space_id = ds2.data_space_id
+        JOIN sys.index_columns AS ic ON ic.[object_id] = i.[object_id] AND ic.index_id = i.index_id AND ic.partition_ordinal >= 1 
+        JOIN sys.columns AS c ON i.[object_id] = c.[object_id] AND ic.column_id = c.column_id
+        LEFT JOIN sys.partition_range_values v ON pf.function_id = v.function_id AND v.boundary_id = p.partition_number - pf.boundary_value_on_right
+WHERE   i.index_id IN (0, 1) -- Heap and Clustered Index
+ORDER BY ObjectName,partition_number
+"""
+
+
+
+
 # snippets 的结构配置
 snippets = [
     {'title':'depends' ,'description':'search words from definition', 'sql':depends},
@@ -201,7 +244,9 @@ snippets = [
     {'title':'backup history' ,'description':'show backup history', 'sql':backup_history},
     {'title':'restore history' ,'description':'show restore history', 'sql':restore_history},
     {'title':'long query' ,'description':'show long run query', 'sql':long_query},
-    {'title':'running query' ,'description':'show running query', 'sql':running_query}
+    {'title':'running query' ,'description':'show running query', 'sql':running_query},
+    {'title':'insert select' ,'description':'insert ... select from ...', 'sql':insert_select},
+    {'title':'partition info' ,'description':'partition table information', 'sql':partition_info}
 ]
 
 
