@@ -29,7 +29,7 @@ snippet_pattern = """<?xml version="1.0" encoding="utf-8" ?>
 """
 
 depends = """-- 查询依赖（字符依赖，注释都算）【sql_modules】
-SELECT OBJECT_NAME(a.object_id),a.* 
+SELECT OBJECT_NAME(a.object_id),b.modify_date,a.* 
 FROM sys.sql_modules a
 INNER JOIN sys.objects b ON a.object_id = b.object_id
 WHERE CHARINDEX('',a.definition) > 0
@@ -192,7 +192,7 @@ LEFT JOIN sys.dm_exec_sessions s ON req.session_id = s.session_id;
 
 insert_select = """--- Insert Select Query
 DECLARE @Table VARCHAR(500) = '<TableName>';
-DECLARE @Cols VARCHAR(2000),@Inser_Select VARCHAR(4000);
+DECLARE @Cols VARCHAR(MAX),@Inser_Select VARCHAR(MAX);
 SET @Cols = ',' + (
     SELECT  name + CHAR(10) + ','
     FROM sys.columns
