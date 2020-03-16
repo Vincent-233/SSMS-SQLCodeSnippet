@@ -206,7 +206,7 @@ PRINT @Inser_Select;
 """
 
 
-partition_info = """"-- 分区表数据分布情况
+partition_info = """-- 分区表数据分布情况
 SELECT  OBJECT_NAME(i.object_id) AS ObjectName
        ,c.name AS PartitioningColumn
        ,CONVERT(VARCHAR(50), ps.name) AS partition_scheme
