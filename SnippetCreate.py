@@ -1,7 +1,7 @@
 import os
 from SnippetPattern import snippet_pattern,snippets
 
-work_path = r'C:/Users/bming/SSMS.Config/CodePattern'
+work_path = r'CodePattern'
 
 def main():
     for snippet in snippets:

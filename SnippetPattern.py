@@ -29,43 +29,55 @@ snippet_pattern = """<?xml version="1.0" encoding="utf-8" ?>
 """
 
 depends = """-- 查询依赖（字符依赖，注释都算）【sql_modules】
-SELECT OBJECT_NAME(a.object_id),b.modify_date,a.* 
+SELECT c.name AS [Schema],OBJECT_NAME(a.object_id) AS Object_Name,b.modify_date,a.* 
 FROM sys.sql_modules a
 INNER JOIN sys.objects b ON a.object_id = b.object_id
+INNER JOIN sys.schemas c ON b.schema_id = c.schema_id
 WHERE CHARINDEX('',a.definition) > 0
   AND b.type = 'P';
 """
 
 sfv = """-- search views
-SELECT * FROM sys.views
-WHERE name LIKE '%%'
-order by modify_date DESC;
+SELECT c.name AS [Schema],a.* 
+FROM sys.views a
+INNER JOIN sys.schemas c ON a.schema_id = c.schema_id
+WHERE a.name LIKE '%%'
+order by a.modify_date DESC;
 """
 
 sft = """-- search tables
-SELECT * FROM sys.tables
-WHERE name LIKE '%%'
-order by modify_date DESC;
+SELECT c.name AS [Schema],a.* 
+FROM sys.tables a
+INNER JOIN sys.schemas c ON a.schema_id = c.schema_id
+WHERE a.name LIKE '%%'
+order by a.modify_date DESC;
 """
 
 sff = """-- search functions
-SELECT * FROM sys .objects WHERE type IN ( 'IF', 'TF', 'FN')
-AND name LIKE '%%';
+SELECT c.name AS [Schema],a.* 
+FROM sys .objects a
+INNER JOIN sys.schemas c ON a.schema_id = c.schema_id
+WHERE a.type IN ( 'IF', 'TF', 'FN')
+AND a.name LIKE '%%';
 """
 
 sfp = """-- search procedures
-SELECT * FROM sys.procedures
-WHERE name LIKE '%%'
-order by modify_date DESC;
+SELECT c.name AS [Schema],a.* 
+FROM sys.procedures a
+INNER JOIN sys.schemas c ON a.schema_id = c.schema_id
+WHERE a.name LIKE '%%'
+order by a.modify_date DESC;
 """
 
 sfc = """-- search column names
-SELECT a.name AS column_name,c.name AS data_type,b.name AS [object_name],b.[type_desc] AS object_type
+SELECT a.name AS column_name,b.name AS [object_name],b.[type_desc] AS object_type
+      ,c.name AS data_type,a.collation_name
 FROM sys.columns a
 INNER JOIN sys.objects b ON a.object_id = b.object_id
 INNER JOIN sys.types c ON a.system_type_id = c.user_type_id
 WHERE b.Type IN ('U','V')
-  AND a.name LIKE '%%';
+  AND a.name LIKE '%%' -- column name
+  and b.name LIKE '%%' -- object name
 """
 
 table_size = """SELECT

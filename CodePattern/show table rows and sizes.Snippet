@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+<_locDefinition xmlns="urn:locstudio">
+    <_locDefault _loc="locNone" />
+    <_locTag _loc="locData">Title</_locTag>
+    <_locTag _loc="locData">Description</_locTag>
+    <_locTag _loc="locData">Author</_locTag>
+    <_locTag _loc="locData">ToolTip</_locTag>
+</_locDefinition>
+	<CodeSnippet Format="1.0.0">
+	<Header>
+	<Title>table sizes</Title>
+        <Shortcut></Shortcut>
+	<Description>show table rows and sizes</Description>
+	<Author>God</Author>
+	<SnippetTypes>
+		<SnippetType>Expansion</SnippetType>
+	</SnippetTypes>
+	</Header>
+	<Snippet>
+		<Declarations>
+		</Declarations>
+		<Code Language="SQL">
+			<![CDATA[SELECT
+    s.Name AS SchemaName,
+    t.Name AS TableName,
+    p.partition_number,
+    p.rows AS RowCounts,
+    CAST(ROUND((SUM(a.used_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Used_MB,
+    CAST(ROUND((SUM(a.total_pages) - SUM(a.used_pages)) / 128.00, 2) AS NUMERIC(36, 2)) AS Unused_MB,
+    CAST(ROUND((SUM(a.total_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Total_MB
+    FROM sys.tables t
+    INNER JOIN sys.indexes i ON t.OBJECT_ID = i.object_id
+    INNER JOIN sys.partitions p ON i.object_id = p.OBJECT_ID AND i.index_id = p.index_id
+    INNER JOIN sys.allocation_units a ON p.partition_id = a.container_id
+    INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+GROUP BY t.Name, s.Name, p.Rows, p.partition_number
+ORDER BY Total_MB DESC;
+]]>
+		</Code>
+	</Snippet>
+	</CodeSnippet>
+</CodeSnippets>

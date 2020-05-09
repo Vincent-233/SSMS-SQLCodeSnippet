@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+<_locDefinition xmlns="urn:locstudio">
+    <_locDefault _loc="locNone" />
+    <_locTag _loc="locData">Title</_locTag>
+    <_locTag _loc="locData">Description</_locTag>
+    <_locTag _loc="locData">Author</_locTag>
+    <_locTag _loc="locData">ToolTip</_locTag>
+</_locDefinition>
+	<CodeSnippet Format="1.0.0">
+	<Header>
+	<Title>backup history</Title>
+        <Shortcut></Shortcut>
+	<Description>show backup history</Description>
+	<Author>God</Author>
+	<SnippetTypes>
+		<SnippetType>Expansion</SnippetType>
+	</SnippetTypes>
+	</Header>
+	<Snippet>
+		<Declarations>
+		</Declarations>
+		<Code Language="SQL">
+			<![CDATA[-- 查询所有数据库备份历史（在此基础上可以做其他改进，如查最后一次备份日期等）
+SELECT
+        a.database_name
+       ,b. physical_device_name
+       ,a. [type]    -- D-Database | I-Differential database | L-Log | F-File or filegroup   
+       ,a. [user_name]
+       ,a. server_name
+       ,a. machine_name
+       ,a. compatibility_level
+       ,a. backup_start_date
+       ,a. backup_finish_date
+       ,LTRIM( ROUND(CAST (a. backup_size AS FLOAT)/( 1024*1024 ),2)) + ' MB' backup_size
+       ,LTRIM( ROUND(CAST (a. compressed_backup_size AS FLOAT)/(1024 *1024), 2)) + ' MB' compressed_backup_size
+       ,a. name Remark
+FROM
+       msdb..backupset a
+LEFT JOIN
+       msdb..backupmediafamily b ON a .media_set_id = b .media_set_id
+--WHERE
+--	CHARINDEX('DTC',a.database_name) > 0
+ORDER BY
+       backup_finish_date DESC;
+]]>
+		</Code>
+	</Snippet>
+	</CodeSnippet>
+</CodeSnippets>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+<_locDefinition xmlns="urn:locstudio">
+    <_locDefault _loc="locNone" />
+    <_locTag _loc="locData">Title</_locTag>
+    <_locTag _loc="locData">Description</_locTag>
+    <_locTag _loc="locData">Author</_locTag>
+    <_locTag _loc="locData">ToolTip</_locTag>
+</_locDefinition>
+	<CodeSnippet Format="1.0.0">
+	<Header>
+	<Title>sfc</Title>
+        <Shortcut></Shortcut>
+	<Description>search column names</Description>
+	<Author>God</Author>
+	<SnippetTypes>
+		<SnippetType>Expansion</SnippetType>
+	</SnippetTypes>
+	</Header>
+	<Snippet>
+		<Declarations>
+		</Declarations>
+		<Code Language="SQL">
+			<![CDATA[-- search column names
+SELECT a.name AS column_name,b.name AS [object_name],b.[type_desc] AS object_type
+      ,c.name AS data_type,a.collation_name
+FROM sys.columns a
+INNER JOIN sys.objects b ON a.object_id = b.object_id
+INNER JOIN sys.types c ON a.system_type_id = c.user_type_id
+WHERE b.Type IN ('U','V')
+  AND a.name LIKE '%%' -- column name
+  and b.name LIKE '%%' -- object name
+]]>
+		</Code>
+	</Snippet>
+	</CodeSnippet>
+</CodeSnippets>

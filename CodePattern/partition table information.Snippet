@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+<_locDefinition xmlns="urn:locstudio">
+    <_locDefault _loc="locNone" />
+    <_locTag _loc="locData">Title</_locTag>
+    <_locTag _loc="locData">Description</_locTag>
+    <_locTag _loc="locData">Author</_locTag>
+    <_locTag _loc="locData">ToolTip</_locTag>
+</_locDefinition>
+	<CodeSnippet Format="1.0.0">
+	<Header>
+	<Title>partition info</Title>
+        <Shortcut></Shortcut>
+	<Description>partition table information</Description>
+	<Author>God</Author>
+	<SnippetTypes>
+		<SnippetType>Expansion</SnippetType>
+	</SnippetTypes>
+	</Header>
+	<Snippet>
+		<Declarations>
+		</Declarations>
+		<Code Language="SQL">
+			<![CDATA[-- 分区表数据分布情况
+SELECT  OBJECT_NAME(i.object_id) AS ObjectName
+       ,c.name AS PartitioningColumn
+       ,CONVERT(VARCHAR(50), ps.name) AS partition_scheme
+       ,p.partition_number
+       ,CONVERT(VARCHAR(10), ds2.name) AS filegroup
+       ,CONVERT(VARCHAR(19), ISNULL(v.value, ''), 120) AS range_boundary
+       ,p.rows
+       --,df.physical_name AS DatabaseFileName
+FROM    sys.indexes i
+        JOIN sys.partition_schemes ps ON i.data_space_id = ps.data_space_id
+        JOIN sys.destination_data_spaces dds ON ps.data_space_id = dds.partition_scheme_id
+        JOIN sys.data_spaces ds2 ON dds.data_space_id = ds2.data_space_id
+        JOIN sys.partitions p ON dds.destination_id = p.partition_number AND p.object_id = i.object_id AND p.index_id = i.index_id
+        JOIN sys.partition_functions pf ON ps.function_id = pf.function_id
+        --JOIN sys.database_files df ON df.data_space_id = ds2.data_space_id
+        JOIN sys.index_columns AS ic ON ic.[object_id] = i.[object_id] AND ic.index_id = i.index_id AND ic.partition_ordinal >= 1 
+        JOIN sys.columns AS c ON i.[object_id] = c.[object_id] AND ic.column_id = c.column_id
+        LEFT JOIN sys.partition_range_values v ON pf.function_id = v.function_id AND v.boundary_id = p.partition_number - pf.boundary_value_on_right
+WHERE   i.index_id IN (0, 1) -- Heap and Clustered Index
+ORDER BY ObjectName,partition_number
+]]>
+		</Code>
+	</Snippet>
+	</CodeSnippet>
+</CodeSnippets>

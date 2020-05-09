@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+<_locDefinition xmlns="urn:locstudio">
+    <_locDefault _loc="locNone" />
+    <_locTag _loc="locData">Title</_locTag>
+    <_locTag _loc="locData">Description</_locTag>
+    <_locTag _loc="locData">Author</_locTag>
+    <_locTag _loc="locData">ToolTip</_locTag>
+</_locDefinition>
+	<CodeSnippet Format="1.0.0">
+	<Header>
+	<Title>depends</Title>
+        <Shortcut></Shortcut>
+	<Description>search words from definition</Description>
+	<Author>God</Author>
+	<SnippetTypes>
+		<SnippetType>Expansion</SnippetType>
+	</SnippetTypes>
+	</Header>
+	<Snippet>
+		<Declarations>
+		</Declarations>
+		<Code Language="SQL">
+			<![CDATA[-- 查询依赖（字符依赖，注释都算）【sql_modules】
+SELECT c.name AS [Schema],OBJECT_NAME(a.object_id) AS Object_Name,b.modify_date,a.* 
+FROM sys.sql_modules a
+INNER JOIN sys.objects b ON a.object_id = b.object_id
+INNER JOIN sys.schemas c ON b.schema_id = c.schema_id
+WHERE CHARINDEX('',a.definition) > 0
+  AND b.type = 'P';
+]]>
+		</Code>
+	</Snippet>
+	</CodeSnippet>
+</CodeSnippets>

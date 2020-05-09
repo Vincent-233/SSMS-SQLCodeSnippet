@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+<_locDefinition xmlns="urn:locstudio">
+    <_locDefault _loc="locNone" />
+    <_locTag _loc="locData">Title</_locTag>
+    <_locTag _loc="locData">Description</_locTag>
+    <_locTag _loc="locData">Author</_locTag>
+    <_locTag _loc="locData">ToolTip</_locTag>
+</_locDefinition>
+	<CodeSnippet Format="1.0.0">
+	<Header>
+	<Title>insert select</Title>
+        <Shortcut></Shortcut>
+	<Description>insert ... select from ...</Description>
+	<Author>God</Author>
+	<SnippetTypes>
+		<SnippetType>Expansion</SnippetType>
+	</SnippetTypes>
+	</Header>
+	<Snippet>
+		<Declarations>
+		</Declarations>
+		<Code Language="SQL">
+			<![CDATA[--- Insert Select Query
+DECLARE @Table VARCHAR(500) = '<TableName>';
+DECLARE @Cols VARCHAR(MAX),@Inser_Select VARCHAR(MAX);
+SET @Cols = ',' + (
+    SELECT  name + CHAR(10) + ','
+    FROM sys.columns
+    WHERE OBJECT_ID = OBJECT_ID(@Table)
+    FOR XML PATH('')
+)
+SET @Cols =  REPLACE(LEFT(@Cols,LEN(@Cols )-1),',','    ,')
+SET @Cols = '     ' + RIGHT(@Cols,LEN(@Cols)-5)
+SET @Inser_Select = 'INSERT INTO '+@Table+CHAR(10)+'('+CHAR(10)+@Cols+')'+CHAR(10)+'SELECT'+CHAR(10)+@Cols+'FROM '+ @Table + ';'
+PRINT @Inser_Select;
+]]>
+		</Code>
+	</Snippet>
+	</CodeSnippet>
+</CodeSnippets>
