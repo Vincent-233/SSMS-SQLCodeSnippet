@@ -80,21 +80,29 @@ WHERE b.Type IN ('U','V')
   and b.name LIKE '%%' -- object name
 """
 
-table_size = """SELECT
-    s.Name AS SchemaName,
-    t.Name AS TableName,
-    p.partition_number,
-    p.rows AS RowCounts,
-    CAST(ROUND((SUM(a.used_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Used_MB,
-    CAST(ROUND((SUM(a.total_pages) - SUM(a.used_pages)) / 128.00, 2) AS NUMERIC(36, 2)) AS Unused_MB,
-    CAST(ROUND((SUM(a.total_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Total_MB,
-    CAST(ROUND((SUM(a.total_pages) / 128.00 / 1024), 2) AS NUMERIC(36, 2)) AS Total_GB
-    FROM sys.tables t
-    INNER JOIN sys.indexes i ON t.OBJECT_ID = i.object_id
-    INNER JOIN sys.partitions p ON i.object_id = p.OBJECT_ID AND i.index_id = p.index_id
+table_size = """SELECT DB_NAME() AS [database]
+     , CONCAT(s.name, '.', t.name) AS table_full_name
+     , s.name AS SchemaName
+     , t.name AS TableName
+     , SUM(CASE WHEN i.index_id < 2 THEN p.rows ELSE 0 END) AS RowCounts
+     , COUNT(DISTINCT p.partition_number) AS Partition_Cnt
+     , f.name AS fileGrouopName
+     , CAST(ROUND((SUM(a.used_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Used_MB
+     --, CAST(ROUND((SUM(a.used_pages - a.data_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Index_MB
+     , CAST(ROUND((SUM(a.total_pages) - SUM(a.used_pages)) / 128.00, 2) AS NUMERIC(36, 2)) AS Unused_MB
+     , CAST(ROUND((SUM(a.total_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Total_MB
+     , CAST(ROUND((SUM(a.total_pages) / 128.00 / 1024), 2) AS NUMERIC(36, 2)) AS Tota1_GB
+     , t.modify_date
+FROM sys.tables t
+    INNER JOIN sys.indexes i ON t.object_id = i.object_id
+    INNER JOIN sys.partitions p ON i.object_id = p.object_id AND i.index_id = p.index_id
     INNER JOIN sys.allocation_units a ON p.partition_id = a.container_id
     INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
-GROUP BY t.Name, s.Name, p.Rows, p.partition_number
+    INNER JOIN sys.filegroups f ON a.data_space_id = f.data_space_id
+GROUP BY s.name
+       , t.name
+       , f.name
+       , t.modify_date
 ORDER BY Total_MB DESC;
 """
 
