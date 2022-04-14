@@ -38,7 +38,7 @@ WHERE CHARINDEX('',a.definition) > 0
 """
 
 sfv = """-- search views
-SELECT c.name AS [Schema],a.* 
+SELECT DB_NAME() AS [database], CONCAT(c.name, '.', a.name) AS view_name, c.name AS [Schema],a.* 
 FROM sys.views a
 INNER JOIN sys.schemas c ON a.schema_id = c.schema_id
 WHERE a.name LIKE '%%'
@@ -46,7 +46,7 @@ order by a.modify_date DESC;
 """
 
 sft = """-- search tables
-SELECT c.name AS [Schema],a.* 
+SELECT DB_NAME() AS [database], CONCAT(c.name, '.', a.name) AS table_name, c.name AS [Schema],a.* 
 FROM sys.tables a
 INNER JOIN sys.schemas c ON a.schema_id = c.schema_id
 WHERE a.name LIKE '%%'
@@ -54,7 +54,7 @@ order by a.modify_date DESC;
 """
 
 sff = """-- search functions
-SELECT c.name AS [Schema],a.* 
+SELECT DB_NAME() AS [database], CONCAT(c.name, '.', a.name) AS function_name, c.name AS [Schema],a.* 
 FROM sys .objects a
 INNER JOIN sys.schemas c ON a.schema_id = c.schema_id
 WHERE a.type IN ( 'IF', 'TF', 'FN')
@@ -62,7 +62,7 @@ AND a.name LIKE '%%';
 """
 
 sfp = """-- search procedures
-SELECT c.name AS [Schema],a.* 
+SELECT DB_NAME() AS [database], CONCAT(c.name, '.', a.name) AS sp_name, c.name AS [Schema],a.* 
 FROM sys.procedures a
 INNER JOIN sys.schemas c ON a.schema_id = c.schema_id
 WHERE a.name LIKE '%%'
@@ -70,7 +70,8 @@ order by a.modify_date DESC;
 """
 
 sfc = """-- search column names
-SELECT a.name AS column_name,b.name AS [object_name],b.[type_desc] AS object_type
+SELECT a.name AS column_name, DB_NAME() AS [database], CONCAT(c.name, '.', a.name) AS object_fullname
+     , b.name AS [object_name],b.[type_desc] AS object_type
       ,c.name AS data_type,a.collation_name
 FROM sys.columns a
 INNER JOIN sys.objects b ON a.object_id = b.object_id
@@ -84,7 +85,7 @@ table_size = """SELECT DB_NAME() AS [database]
      , CONCAT(s.name, '.', t.name) AS table_full_name
      , s.name AS SchemaName
      , t.name AS TableName
-     , SUM(CASE WHEN i.index_id < 2 THEN p.rows ELSE 0 END) AS RowCounts
+     , SUM(CASE WHEN i.index_id < 2 and a.type = 1 THEN p.rows ELSE 0 END) AS RowCounts
      , COUNT(DISTINCT p.partition_number) AS Partition_Cnt
      , f.name AS fileGrouopName
      , CAST(ROUND((SUM(a.used_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Used_MB

@@ -22,7 +22,7 @@
 		</Declarations>
 		<Code Language="SQL">
 			<![CDATA[-- search tables
-SELECT c.name AS [Schema],a.* 
+SELECT DB_NAME() AS [database], CONCAT(c.name, '.', a.name) AS table_name, c.name AS [Schema],a.* 
 FROM sys.tables a
 INNER JOIN sys.schemas c ON a.schema_id = c.schema_id
 WHERE a.name LIKE '%%'

@@ -22,7 +22,8 @@
 		</Declarations>
 		<Code Language="SQL">
 			<![CDATA[-- search column names
-SELECT a.name AS column_name,b.name AS [object_name],b.[type_desc] AS object_type
+SELECT a.name AS column_name, DB_NAME() AS [database], CONCAT(c.name, '.', a.name) AS object_fullname
+     , b.name AS [object_name],b.[type_desc] AS object_type
       ,c.name AS data_type,a.collation_name
 FROM sys.columns a
 INNER JOIN sys.objects b ON a.object_id = b.object_id

@@ -22,7 +22,7 @@
 		</Declarations>
 		<Code Language="SQL">
 			<![CDATA[-- search functions
-SELECT c.name AS [Schema],a.* 
+SELECT DB_NAME() AS [database], CONCAT(c.name, '.', a.name) AS function_name, c.name AS [Schema],a.* 
 FROM sys .objects a
 INNER JOIN sys.schemas c ON a.schema_id = c.schema_id
 WHERE a.type IN ( 'IF', 'TF', 'FN')

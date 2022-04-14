@@ -1,7 +1,8 @@
 import os
+from pathlib import Path
 from SnippetPattern import snippet_pattern,snippets
 
-work_path = r'CodePattern'
+work_path = os.path.join(Path(__file__).parent, 'CodePattern')
 
 def main():
     for snippet in snippets:
