@@ -32,7 +32,7 @@
      --, CAST(ROUND((SUM(a.used_pages - a.data_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Index_MB
      , CAST(ROUND((SUM(a.total_pages) - SUM(a.used_pages)) / 128.00, 2) AS NUMERIC(36, 2)) AS Unused_MB
      , CAST(ROUND((SUM(a.total_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Total_MB
-     , CAST(ROUND((SUM(a.total_pages) / 128.00 / 1024), 2) AS NUMERIC(36, 2)) AS Tota1_GB
+     , CAST(ROUND((SUM(a.total_pages) / 128.00 / 1024), 2) AS NUMERIC(36, 2)) AS Total_GB
      , t.modify_date
 FROM sys.tables t
     INNER JOIN sys.indexes i ON t.object_id = i.object_id

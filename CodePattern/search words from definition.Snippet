@@ -26,7 +26,7 @@ SELECT c.name AS [Schema],OBJECT_NAME(a.object_id) AS Object_Name,b.modify_date,
 FROM sys.sql_modules a
 INNER JOIN sys.objects b ON a.object_id = b.object_id
 INNER JOIN sys.schemas c ON b.schema_id = c.schema_id
-WHERE CHARINDEX('',a.definition) > 0
+WHERE CHARINDEX('benjay',a.definition) > 0
   AND b.type = 'P';
 ]]>
 		</Code>

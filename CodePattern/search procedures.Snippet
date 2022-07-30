@@ -26,7 +26,7 @@ SELECT DB_NAME() AS [database], CONCAT(c.name, '.', a.name) AS sp_name, c.name A
 FROM sys.procedures a
 INNER JOIN sys.schemas c ON a.schema_id = c.schema_id
 WHERE a.name LIKE '%%'
-order by a.modify_date DESC;
+ORDER BY a.modify_date DESC;
 ]]>
 		</Code>
 	</Snippet>

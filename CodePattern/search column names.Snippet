@@ -30,7 +30,7 @@ INNER JOIN sys.objects b ON a.object_id = b.object_id
 INNER JOIN sys.types c ON a.system_type_id = c.user_type_id
 WHERE b.Type IN ('U','V')
   AND a.name LIKE '%%' -- column name
-  and b.name LIKE '%%' -- object name
+  and CONCAT(c.name, '.', a.name) LIKE '%%' -- object_fullname
 ]]>
 		</Code>
 	</Snippet>

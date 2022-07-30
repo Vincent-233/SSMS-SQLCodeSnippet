@@ -33,7 +33,7 @@ SELECT c.name AS [Schema],OBJECT_NAME(a.object_id) AS Object_Name,b.modify_date,
 FROM sys.sql_modules a
 INNER JOIN sys.objects b ON a.object_id = b.object_id
 INNER JOIN sys.schemas c ON b.schema_id = c.schema_id
-WHERE CHARINDEX('',a.definition) > 0
+WHERE CHARINDEX('benjay',a.definition) > 0
   AND b.type = 'P';
 """
 
@@ -42,7 +42,7 @@ SELECT DB_NAME() AS [database], CONCAT(c.name, '.', a.name) AS view_name, c.name
 FROM sys.views a
 INNER JOIN sys.schemas c ON a.schema_id = c.schema_id
 WHERE a.name LIKE '%%'
-order by a.modify_date DESC;
+ORDER BY a.modify_date DESC;
 """
 
 sft = """-- search tables
@@ -50,7 +50,7 @@ SELECT DB_NAME() AS [database], CONCAT(c.name, '.', a.name) AS table_name, c.nam
 FROM sys.tables a
 INNER JOIN sys.schemas c ON a.schema_id = c.schema_id
 WHERE a.name LIKE '%%'
-order by a.modify_date DESC;
+ORDER BY a.modify_date DESC;
 """
 
 sff = """-- search functions
@@ -66,7 +66,7 @@ SELECT DB_NAME() AS [database], CONCAT(c.name, '.', a.name) AS sp_name, c.name A
 FROM sys.procedures a
 INNER JOIN sys.schemas c ON a.schema_id = c.schema_id
 WHERE a.name LIKE '%%'
-order by a.modify_date DESC;
+ORDER BY a.modify_date DESC;
 """
 
 sfc = """-- search column names
@@ -78,7 +78,7 @@ INNER JOIN sys.objects b ON a.object_id = b.object_id
 INNER JOIN sys.types c ON a.system_type_id = c.user_type_id
 WHERE b.Type IN ('U','V')
   AND a.name LIKE '%%' -- column name
-  and b.name LIKE '%%' -- object name
+  and CONCAT(c.name, '.', a.name) LIKE '%%' -- object_fullname
 """
 
 table_size = """SELECT DB_NAME() AS [database]
@@ -92,7 +92,7 @@ table_size = """SELECT DB_NAME() AS [database]
      --, CAST(ROUND((SUM(a.used_pages - a.data_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Index_MB
      , CAST(ROUND((SUM(a.total_pages) - SUM(a.used_pages)) / 128.00, 2) AS NUMERIC(36, 2)) AS Unused_MB
      , CAST(ROUND((SUM(a.total_pages) / 128.00), 2) AS NUMERIC(36, 2)) AS Total_MB
-     , CAST(ROUND((SUM(a.total_pages) / 128.00 / 1024), 2) AS NUMERIC(36, 2)) AS Tota1_GB
+     , CAST(ROUND((SUM(a.total_pages) / 128.00 / 1024), 2) AS NUMERIC(36, 2)) AS Total_GB
      , t.modify_date
 FROM sys.tables t
     INNER JOIN sys.indexes i ON t.object_id = i.object_id
@@ -107,7 +107,7 @@ GROUP BY s.name
 ORDER BY Total_MB DESC;
 """
 
-backup_history = """-- 查询所有数据库备份历史（在此基础上可以做其他改进，如查最后一次备份日期等）
+backup_history = """-- All backup history
 SELECT
         a.database_name
        ,b. physical_device_name
@@ -131,7 +131,7 @@ ORDER BY
        backup_finish_date DESC;
 """
 
-restore_history = """-- 还原历史
+restore_history = """-- Restore History
 SELECT
        a.destination_database_name
        ,c. destination_phys_name
@@ -169,7 +169,6 @@ WHERE
 ORDER BY 
       average_seconds DESC;
 """
-
 
 running_query = """-- Running Query
 SELECT req.session_id
@@ -211,7 +210,6 @@ LEFT JOIN sys.databases db ON req.database_id = db.database_id
 LEFT JOIN sys.dm_exec_sessions s ON req.session_id = s.session_id;
 """
 
-
 insert_select = """--- Insert Select Query
 DECLARE @Table VARCHAR(500) = '<TableName>';
 DECLARE @Cols VARCHAR(MAX),@Inser_Select VARCHAR(MAX);
@@ -226,7 +224,6 @@ SET @Cols = '     ' + RIGHT(@Cols,LEN(@Cols)-5)
 SET @Inser_Select = 'INSERT INTO '+@Table+CHAR(10)+'('+CHAR(10)+@Cols+')'+CHAR(10)+'SELECT'+CHAR(10)+@Cols+'FROM '+ @Table + ';'
 PRINT @Inser_Select;
 """
-
 
 partition_info = """-- 分区表数据分布情况
 SELECT  OBJECT_NAME(i.object_id) AS ObjectName
@@ -251,47 +248,62 @@ WHERE   i.index_id IN (0, 1) -- Heap and Clustered Index
 ORDER BY ObjectName,partition_number
 """
 
-
-
+index_info = """ -- index info and usage stats
+SELECT
+     SCHEMA_NAME(t.schema_id) AS SchemaName
+    ,t.name AS TableName
+    ,CONCAT(SCHEMA_NAME(t.schema_id), '.', t.name) AS TableFullName
+    ,i.name AS IndexName
+    ,i.type_desc
+    ,STUFF((
+        SELECT ',' + c.name + CASE WHEN ic.is_descending_key = 1 THEN ' DESC' ELSE '' END
+        FROM sys.index_columns AS ic
+        INNER JOIN sys.columns AS c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+        WHERE ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.is_included_column = 0
+        ORDER BY ic.key_ordinal
+        FOR XML PATH('')),1,1,'') AS KeyColumns
+    ,STUFF((
+        SELECT ',' + c.name
+        FROM sys.index_columns AS ic
+        INNER JOIN sys.columns AS c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+        WHERE ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.is_included_column = 1
+        ORDER BY ic.index_column_id
+        FOR XML PATH('')),1,1,'') AS IncludedColumns
+    ,i.is_primary_key
+    ,i.is_unique
+    ,i.is_unique_constraint
+   ,u.user_seeks
+   ,u.user_scans
+   ,u.user_lookups
+   ,u.user_updates
+   ,u.last_user_seek 
+   ,u.last_user_scan
+   ,u.last_user_lookup
+   ,u.last_user_update
+FROM sys.tables AS t
+INNER JOIN sys.indexes AS i ON t.object_id = i.object_id
+LEFT JOIN sys.dm_db_index_usage_stats AS u ON i.object_id = u.object_id AND i.index_id = u.index_id
+WHERE t.is_ms_shipped = 0
+ AND CONCAT(SCHEMA_NAME(t.schema_id), '.', t.name)  LIKE '%%'
+AND i.type <> 0
+"""
 
 # snippets 的结构配置
 snippets = [
-    {'title':'depends' ,'description':'search words from definition', 'sql':depends},
-    {'title':'sfv' ,'description':'search views', 'sql':sfv},
-    {'title':'sft' ,'description':'search tables', 'sql':sft},
-    {'title':'sff' ,'description':'search functions', 'sql':sff},
-    {'title':'sfp' ,'description':'search procedures', 'sql':sfp},
-    {'title':'sfc' ,'description':'search column names', 'sql':sfc},
-    {'title':'table sizes' ,'description':'show table rows and sizes', 'sql':table_size},
-    {'title':'backup history' ,'description':'show backup history', 'sql':backup_history},
-    {'title':'restore history' ,'description':'show restore history', 'sql':restore_history},
-    {'title':'long query' ,'description':'show long run query', 'sql':long_query},
-    {'title':'running query' ,'description':'show running query', 'sql':running_query},
-    {'title':'insert select' ,'description':'insert ... select from ...', 'sql':insert_select},
-    {'title':'partition info' ,'description':'partition table information', 'sql':partition_info}
+    {'title': 'depends', 'description': 'search words from definition', 'sql': depends},
+    {'title': 'sfv', 'description': 'search views', 'sql': sfv},
+    {'title': 'sft', 'description': 'search tables', 'sql': sft},
+    {'title': 'sff', 'description': 'search functions', 'sql': sff},
+    {'title': 'sfp', 'description': 'search procedures', 'sql': sfp},
+    {'title': 'sfc', 'description': 'search column names', 'sql': sfc},
+    {'title': 'table sizes', 'description': 'show table rows and sizes', 'sql': table_size},
+    {'title': 'backup history', 'description': 'show backup history', 'sql': backup_history},
+    {'title': 'restore history', 'description': 'show restore history', 'sql': restore_history},
+    {'title': 'long query', 'description': 'show long run query', 'sql': long_query},
+    {'title': 'running query', 'description': 'show running query', 'sql': running_query},
+    {'title': 'insert select', 'description': 'insert ... select from ...', 'sql': insert_select},
+    {'title': 'partition info', 'description': 'partition table information', 'sql': partition_info},
+    {'title': 'index info', 'description': 'index info and usage', 'sql': index_info}
+
 ]
-
-
-         
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
